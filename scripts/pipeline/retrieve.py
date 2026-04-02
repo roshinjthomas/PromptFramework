@@ -14,6 +14,37 @@ from scripts.lib.vector_store import RetrievedChunk, get_vector_store
 
 logger = get_logger(__name__)
 
+# ---------------------------------------------------------------------------
+# Module-level singletons — loaded once, reused across requests
+# ---------------------------------------------------------------------------
+
+_embedder = None
+_vector_store = None
+_rag_config = None
+
+
+def _get_shared_embedder():
+    global _embedder, _rag_config
+    if _embedder is None:
+        _rag_config = _rag_config or load_rag_config()
+        _embedder = get_embedder(_rag_config)
+    return _embedder
+
+
+def _get_shared_vector_store():
+    global _vector_store, _rag_config
+    if _vector_store is None:
+        _rag_config = _rag_config or load_rag_config()
+        _vector_store = get_vector_store(_rag_config)
+    return _vector_store
+
+
+def _get_rag_config():
+    global _rag_config
+    if _rag_config is None:
+        _rag_config = load_rag_config()
+    return _rag_config
+
 
 # ---------------------------------------------------------------------------
 # Retrieval function
@@ -27,20 +58,7 @@ def retrieve(
     source_filter: Optional[str] = None,
     config: Optional[dict] = None,
 ) -> list[RetrievedChunk]:
-    """
-    Retrieve the top-K most relevant chunks for a query.
-
-    Args:
-        query:           The user's natural language question.
-        top_k:           Number of chunks to retrieve (overrides config).
-        score_threshold: Minimum similarity score to include (overrides config).
-        source_filter:   Optional source_file name to restrict retrieval.
-        config:          Override config dict (defaults to config/rag.yaml).
-
-    Returns:
-        List of RetrievedChunk objects sorted by descending similarity score.
-    """
-    cfg = config or load_rag_config()
+    cfg = config or _get_rag_config()
     retrieval_cfg = cfg.get("retrieval", {})
 
     effective_top_k = top_k if top_k is not None else retrieval_cfg.get("top_k", 5)
@@ -53,8 +71,8 @@ def retrieve(
         logger.warning("Empty query — returning no results.")
         return []
 
-    # Embed the query
-    embedder = get_embedder(cfg)
+    # Embed the query (reuses cached embedder)
+    embedder = _get_shared_embedder() if config is None else get_embedder(config)
     query_vector = embedder.embed_query(query)
 
     # Build optional metadata filter
@@ -62,8 +80,8 @@ def retrieve(
     if source_filter:
         where = {"source_file": source_filter}
 
-    # Query the vector store
-    vector_store = get_vector_store(cfg)
+    # Query the vector store (reuses cached store)
+    vector_store = _get_shared_vector_store() if config is None else get_vector_store(config)
     chunks = vector_store.query(
         query_embedding=query_vector,
         top_k=effective_top_k,

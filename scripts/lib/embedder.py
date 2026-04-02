@@ -1,26 +1,40 @@
 """
-Sentence-transformers embedding wrapper.
+TF-IDF + LSA embedding wrapper (pure Python, no torch/onnxruntime required).
 
-Default model: all-MiniLM-L6-v2 (384-dim, fast, good semantic similarity).
-Supports batch embedding for efficient ingestion.
+Produces 384-dim dense vectors via TfidfVectorizer + TruncatedSVD.
+The model is fit on the first batch of documents and persisted to disk
+so that query embeddings stay in the same vector space.
 """
 
 from __future__ import annotations
 
+import pickle
+from pathlib import Path
 from typing import Optional
+
+import numpy as np
+from sklearn.decomposition import TruncatedSVD
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import Normalizer
 
 from scripts.lib.utils import get_logger, load_rag_config
 
 logger = get_logger(__name__)
 
-DEFAULT_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
-DEFAULT_DEVICE = "cpu"
+DEFAULT_MODEL = "tfidf-lsa-384"
 DEFAULT_BATCH_SIZE = 32
+EMBEDDING_DIM = 384
+MODEL_CACHE_PATH = Path("data/vector-store/embedder.pkl")
 
 
 class Embedder:
     """
-    Wrapper around sentence-transformers SentenceTransformer.
+    TF-IDF + Truncated SVD (LSA) embedding.
+
+    On first use the pipeline is fit to the corpus and cached to disk.
+    Subsequent calls load the cached model so that query vectors are
+    consistent with document vectors.
 
     Usage:
         embedder = Embedder()
@@ -30,32 +44,69 @@ class Embedder:
     def __init__(
         self,
         model_name: str = DEFAULT_MODEL,
-        device: str = DEFAULT_DEVICE,
         batch_size: int = DEFAULT_BATCH_SIZE,
+        n_components: int = EMBEDDING_DIM,
+        **kwargs,
     ) -> None:
         self.model_name = model_name
-        self.device = device
         self.batch_size = batch_size
-        self._model = None  # lazy-loaded
+        self.n_components = n_components
+        self._pipeline: Optional[Pipeline] = None
+        self._corpus: list[str] = []  # accumulated for fitting
 
     # ------------------------------------------------------------------
-    # Lazy model loading
+    # Persistence
     # ------------------------------------------------------------------
 
-    def _load_model(self) -> None:
-        if self._model is not None:
+    def _cache_path(self) -> Path:
+        return MODEL_CACHE_PATH
+
+    def _save(self) -> None:
+        path = self._cache_path()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with open(path, "wb") as f:
+            pickle.dump(self._pipeline, f)
+        logger.info("Embedder pipeline saved to %s", path)
+
+    def _load_cached(self) -> bool:
+        path = self._cache_path()
+        if path.exists():
+            with open(path, "rb") as f:
+                self._pipeline = pickle.load(f)
+            logger.info("Loaded cached embedder from %s", path)
+            return True
+        return False
+
+    # ------------------------------------------------------------------
+    # Pipeline
+    # ------------------------------------------------------------------
+
+    def _build_pipeline(self, texts: list[str]) -> None:
+        """Fit TF-IDF + SVD on the provided texts."""
+        n = min(self.n_components, len(texts) - 1)
+        if n < 2:
+            n = 2
+        self._pipeline = Pipeline([
+            ("tfidf", TfidfVectorizer(
+                max_features=50_000,
+                ngram_range=(1, 2),
+                sublinear_tf=True,
+                min_df=1,
+            )),
+            ("svd", TruncatedSVD(n_components=n, random_state=42)),
+            ("norm", Normalizer(copy=False)),
+        ])
+        self._pipeline.fit(texts)
+        self._save()
+        logger.info("Embedder pipeline fit on %d texts, dim=%d", len(texts), n)
+
+    def _ensure_pipeline(self, texts: list[str]) -> None:
+        """Load cached pipeline or fit a new one."""
+        if self._pipeline is not None:
             return
-        try:
-            from sentence_transformers import SentenceTransformer
-        except ImportError as exc:
-            raise ImportError(
-                "sentence-transformers is not installed. "
-                "Run: pip install sentence-transformers"
-            ) from exc
-
-        logger.info("Loading embedding model '%s' on device '%s'…", self.model_name, self.device)
-        self._model = SentenceTransformer(self.model_name, device=self.device)
-        logger.info("Embedding model loaded. Dimension: %d", self.embedding_dim)
+        if self._load_cached():
+            return
+        self._build_pipeline(texts)
 
     # ------------------------------------------------------------------
     # Public API
@@ -63,45 +114,41 @@ class Embedder:
 
     @property
     def embedding_dim(self) -> int:
-        """Return the output embedding dimension."""
-        self._load_model()
-        return self._model.get_sentence_embedding_dimension()  # type: ignore[union-attr]
+        if self._pipeline is None:
+            self._load_cached()
+        if self._pipeline is not None:
+            return self._pipeline.named_steps["svd"].n_components
+        return self.n_components
+
+    def fit(self, texts: list[str]) -> None:
+        """Explicitly fit the pipeline on a corpus (called during ingestion)."""
+        self._build_pipeline(texts)
 
     def embed(self, texts: list[str]) -> list[list[float]]:
         """
-        Embed a list of strings and return a list of float vectors.
-
-        Args:
-            texts: List of strings to embed.
-
-        Returns:
-            List of embedding vectors (each is a list of floats).
+        Embed a list of strings and return float vectors.
+        If no pipeline exists yet, fits on the provided texts.
         """
         if not texts:
             return []
 
-        self._load_model()
+        self._ensure_pipeline(texts)
 
-        logger.debug("Embedding %d texts in batches of %d…", len(texts), self.batch_size)
-        embeddings = self._model.encode(  # type: ignore[union-attr]
-            texts,
-            batch_size=self.batch_size,
-            show_progress_bar=len(texts) > 100,
-            convert_to_numpy=True,
-            normalize_embeddings=True,  # cosine similarity via dot product
-        )
+        logger.debug("Embedding %d texts…", len(texts))
+        matrix = self._pipeline.transform(texts)  # type: ignore[union-attr]
 
-        return embeddings.tolist()
+        # Pad to EMBEDDING_DIM if SVD produced fewer components
+        current_dim = matrix.shape[1]
+        if current_dim < EMBEDDING_DIM:
+            padding = np.zeros((matrix.shape[0], EMBEDDING_DIM - current_dim))
+            matrix = np.hstack([matrix, padding])
+
+        return matrix.tolist()
 
     def embed_one(self, text: str) -> list[float]:
-        """Embed a single string. Convenience wrapper around embed()."""
         return self.embed([text])[0]
 
     def embed_query(self, query: str) -> list[float]:
-        """
-        Embed a query string. Identical to embed_one but semantically clearer
-        at call sites in the retrieval pipeline.
-        """
         return self.embed_one(query)
 
 
@@ -110,13 +157,11 @@ class Embedder:
 # ---------------------------------------------------------------------------
 
 def get_embedder(config: Optional[dict] = None) -> Embedder:
-    """Create an Embedder from config/rag.yaml (or an override dict)."""
     if config is None:
         config = load_rag_config()
 
     embedding_cfg = config.get("embedding", {})
     return Embedder(
         model_name=embedding_cfg.get("model", DEFAULT_MODEL),
-        device=embedding_cfg.get("device", DEFAULT_DEVICE),
         batch_size=embedding_cfg.get("batch_size", DEFAULT_BATCH_SIZE),
     )

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import uuid
+from concurrent.futures import ThreadPoolExecutor
 from typing import AsyncGenerator
 
 from fastapi import APIRouter, Request
@@ -17,8 +18,10 @@ from sse_starlette.sse import EventSourceResponse
 from backend.models.chat import ChatRequest, ChatResponse, FeedbackRequest, FeedbackResponse
 from scripts.lib.utils import get_logger, load_rag_config
 from scripts.pipeline.retrieve import retrieve, format_context
-from scripts.pipeline.inference import generate_response, stream_response
+from scripts.pipeline.inference import generate_response, astream_response
 from scripts.pipeline.postprocess import postprocess
+
+_executor = ThreadPoolExecutor(max_workers=4)
 
 logger = get_logger(__name__)
 
@@ -99,13 +102,12 @@ async def _sse_stream(request: ChatRequest) -> AsyncGenerator[str, None]:
         yield f"event: sources\ndata: {sources_payload}\n\n"
 
         if not chunks:
-            # Fallback — stream the fallback message
             from scripts.pipeline.postprocess import FALLBACK_RESPONSE
             for word in FALLBACK_RESPONSE.split(" "):
                 yield f"event: chunk\ndata: {json.dumps(word + ' ')}\n\n"
         else:
-            # Stream tokens from the SLM
-            for token in stream_response(
+            # Stream tokens asynchronously — no event loop blocking
+            async for token in astream_response(
                 request.query,
                 context,
                 company_name=request.company_name,
@@ -135,8 +137,10 @@ async def chat(request: ChatRequest):
     if request.stream:
         return EventSourceResponse(_sse_stream(request))
 
-    # Non-streaming fallback
-    result = _run_rag_pipeline(request)
+    # Run blocking pipeline in thread pool to avoid blocking the event loop
+    import asyncio
+    loop = asyncio.get_event_loop()
+    result = await loop.run_in_executor(_executor, _run_rag_pipeline, request)
     return ChatResponse(**result)
 
 

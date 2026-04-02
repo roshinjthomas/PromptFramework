@@ -29,6 +29,13 @@ function ScorePill({ score, threshold }: { score?: number; threshold?: number })
   )
 }
 
+function getScore(q: PerQuestionResult, metric: string): number | undefined {
+  // Backend returns scores nested under q.scores{}
+  if (q.scores && metric in q.scores) return q.scores[metric]
+  // Fallback: flat field
+  return (q as Record<string, unknown>)[metric] as number | undefined
+}
+
 export default function QuestionTable({ questions, thresholds = {} }: QuestionTableProps) {
   const [expandedIdx, setExpandedIdx] = useState<number | null>(null)
 
@@ -69,7 +76,7 @@ export default function QuestionTable({ questions, thresholds = {} }: QuestionTa
                 </td>
                 {METRICS.map((m) => (
                   <td key={m} className="px-3 py-3 text-center">
-                    <ScorePill score={q[m]} threshold={thresholds[m]} />
+                    <ScorePill score={getScore(q, m)} threshold={thresholds[m]} />
                   </td>
                 ))}
                 <td className="px-3 py-3 text-gray-400 text-xs">

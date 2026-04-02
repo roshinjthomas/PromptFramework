@@ -5,8 +5,7 @@ ingestion:
   respect_paragraphs: true    # avoid splitting mid-paragraph
 
 embedding:
-  model: sentence-transformers/all-MiniLM-L6-v2
-  device: cpu
+  model: BAAI/bge-small-en-v1.5
   batch_size: 32
 
 vector_store:

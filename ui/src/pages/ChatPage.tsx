@@ -4,7 +4,7 @@ import SourcePanel from '../components/chat/SourcePanel'
 import { useChat } from '../hooks/useChat'
 
 export default function ChatPage() {
-  const { messages, isLoading, currentCitations, sendMessage, clearChat, error } = useChat()
+  const { messages, isLoading, currentCitations, sendMessage, stopGeneration, clearChat, error } = useChat()
 
   return (
     <div className="flex h-full">
@@ -14,7 +14,7 @@ export default function ChatPage() {
         <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
           <div>
             <h1 className="text-base font-semibold text-gray-800">Customer Support</h1>
-            <p className="text-xs text-gray-400">Powered by RAG + Phi-3 Mini</p>
+            <p className="text-xs text-gray-400">Powered by RAG + Claude Haiku</p>
           </div>
           <button
             onClick={clearChat}
@@ -35,7 +35,7 @@ export default function ChatPage() {
         <ChatWindow messages={messages} isLoading={isLoading} />
 
         {/* Input */}
-        <ChatInput onSend={sendMessage} isLoading={isLoading} />
+        <ChatInput onSend={sendMessage} onStop={stopGeneration} isLoading={isLoading} />
       </div>
 
       {/* Sources sidebar */}

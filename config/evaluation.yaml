@@ -1,5 +1,5 @@
 ragas:
-  test_dataset: data/evaluation/test-dataset.json
+  test_dataset: test-dataset.json
   metrics:
     - faithfulness
     - answer_relevancy

@@ -41,6 +41,8 @@ export interface PerQuestionResult {
   ground_truth: string
   contexts: string[]
   source_document?: string
+  scores?: Record<string, number>
+  // flat fields for backwards compat
   faithfulness?: number
   answer_relevancy?: number
   context_precision?: number
@@ -57,7 +59,7 @@ export interface RAGASResult {
   metrics: Record<MetricName, MetricScore>
   per_question: PerQuestionResult[]
   config_snapshot?: ConfigSnapshot
-  fail_on_threshold_breach: boolean
+  fail_on_threshold_breach?: boolean
 }
 
 export interface EvalRun {

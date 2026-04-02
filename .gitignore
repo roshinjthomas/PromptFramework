@@ -45,8 +45,12 @@ huggingface/
 *.log
 logs/
 
-# Evaluation results (optional — keep or gitignore per team preference)
-# data/evaluation/results/
+# Evaluation results
+data/evaluation/results/
+data/vector-store-test/
+
+# Frontend lock file
+ui/package-lock.json
 
 # Reports
 reports/evaluation/

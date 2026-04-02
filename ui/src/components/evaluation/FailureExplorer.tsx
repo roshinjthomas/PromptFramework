@@ -44,14 +44,18 @@ interface FailedQuestion {
   failures: Array<{ metric: string; score: number; failureType: FailureType }>
 }
 
+function getScore(q: PerQuestionResult, metric: string): number | undefined {
+  if (q.scores && metric in q.scores) return q.scores[metric]
+  return (q as Record<string, unknown>)[metric] as number | undefined
+}
+
 export default function FailureExplorer({ questions, metrics }: FailureExplorerProps) {
-  // Find questions with at least one failing metric
   const failedQuestions: FailedQuestion[] = questions
     .map((q) => {
       const failures = Object.entries(metrics)
         .filter(([_metric, result]) => !result.passed)
         .map(([metric, result]) => {
-          const qScore = (q as Record<string, unknown>)[metric] as number | undefined
+          const qScore = getScore(q, metric)
           return { metric, score: qScore ?? 0, threshold: result.threshold, failureType: FAILURE_MAP[metric] ?? 'correctness' }
         })
         .filter(({ score, threshold }) => score < threshold)

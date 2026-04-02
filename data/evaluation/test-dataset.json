@@ -1,27 +1,42 @@
 [
   {
-    "question": "What is the return window for electronics?",
-    "ground_truth": "Electronics can be returned within 30 days of purchase with the original receipt and in original packaging.",
-    "source_document": "returns-policy.pdf"
+    "question": "What is liability insurance?",
+    "ground_truth": "Liability insurance covers bodily injury and property damage that you cause to others in an accident.",
+    "source_document": "P&C FAQ.pdf"
   },
   {
-    "question": "Do you offer free shipping?",
-    "ground_truth": "Free standard shipping is available on orders over $50.",
-    "source_document": "shipping-faq.pdf"
+    "question": "What is a deductible?",
+    "ground_truth": "A deductible is the amount you pay out-of-pocket before your insurance kicks in.",
+    "source_document": "P&C FAQ.pdf"
   },
   {
-    "question": "How long does standard shipping take?",
-    "ground_truth": "Standard shipping typically takes 5–7 business days from the date of dispatch.",
-    "source_document": "shipping-faq.pdf"
+    "question": "What is comprehensive coverage?",
+    "ground_truth": "Comprehensive coverage pays for damage to your car from non-collision events like theft, fire, or weather.",
+    "source_document": "P&C FAQ.pdf"
   },
   {
-    "question": "Can I return a product without a receipt?",
-    "ground_truth": "Returns without a receipt may be accepted for store credit only, subject to manager approval, and within 14 days of purchase.",
-    "source_document": "returns-policy.pdf"
+    "question": "Can I change my coverage mid-term?",
+    "ground_truth": "Yes, you can usually add endorsements or change limits at any time during the policy term.",
+    "source_document": "P&C FAQ.pdf"
   },
   {
-    "question": "What payment methods do you accept?",
-    "ground_truth": "We accept Visa, Mastercard, American Express, PayPal, and bank transfers for online orders.",
-    "source_document": "payment-faq.pdf"
+    "question": "What is a Business Owner's Policy?",
+    "ground_truth": "A Business Owner's Policy (BOP) is a package that bundles General Liability and Property insurance for small to mid-sized businesses.",
+    "source_document": "P&C FAQ.pdf"
+  },
+  {
+    "question": "What is roadside assistance coverage?",
+    "ground_truth": "Roadside assistance is an optional coverage that helps with towing, flat tires, and battery jump-starts.",
+    "source_document": "P&C FAQ.pdf"
+  },
+  {
+    "question": "What is Professional Liability insurance?",
+    "ground_truth": "Professional Liability, also known as Errors and Omissions (E&O), covers claims that your professional advice or services caused financial harm.",
+    "source_document": "P&C FAQ.pdf"
+  },
+  {
+    "question": "What is Business Personal Property?",
+    "ground_truth": "Business Personal Property (BPP) covers items like furniture, computers, and inventory owned by your business.",
+    "source_document": "P&C FAQ.pdf"
   }
 ]

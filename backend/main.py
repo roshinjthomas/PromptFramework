@@ -27,6 +27,17 @@ logger = get_logger(__name__)
 # App factory
 # ---------------------------------------------------------------------------
 
+async def _prewarm() -> None:
+    """Pre-load embedder and vector store at startup to eliminate first-request delay."""
+    try:
+        from scripts.pipeline.retrieve import _get_shared_embedder, _get_shared_vector_store
+        _get_shared_embedder()
+        _get_shared_vector_store()
+        logger.info("Pipeline pre-warmed: embedder and vector store ready.")
+    except Exception as exc:
+        logger.warning("Pre-warm skipped: %s", exc)
+
+
 def create_app() -> FastAPI:
     app = FastAPI(
         title="RAG Customer Service Chatbot",
@@ -52,6 +63,10 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    @app.on_event("startup")
+    async def startup():
+        await _prewarm()
 
     # API routers
     app.include_router(chat_router)

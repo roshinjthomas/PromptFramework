@@ -1,12 +1,11 @@
 /**
- * useChat hook — manages chat state, SSE streaming, and session tracking.
+ * useChat hook — non-streaming JSON mode for reliability.
  */
 
 import { useCallback, useRef, useState } from 'react'
-import { streamChatMessage } from '../api/chat'
+import { sendChatMessage } from '../api/chat'
 import type { Citation, Message } from '../types/chat'
 
-// Inline uuid v4 to avoid adding uuid dependency (use crypto.randomUUID in modern browsers)
 function generateId(): string {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
     return crypto.randomUUID()
@@ -20,6 +19,7 @@ export interface UseChatReturn {
   currentCitations: Citation[]
   sessionId: string
   sendMessage: (query: string) => void
+  stopGeneration: () => void
   clearChat: () => void
   error: string | null
 }
@@ -37,27 +37,25 @@ export function useChat(companyName = 'our company'): UseChatReturn {
   const [currentCitations, setCurrentCitations] = useState<Citation[]>([])
   const [error, setError] = useState<string | null>(null)
   const sessionId = useRef<string>(generateId())
-  const cancelStreamRef = useRef<(() => void) | null>(null)
+  const abortRef = useRef<AbortController | null>(null)
 
   const sendMessage = useCallback(
     (query: string) => {
       if (!query.trim() || isLoading) return
 
-      // Cancel any active stream
-      cancelStreamRef.current?.()
+      abortRef.current?.abort()
+      const controller = new AbortController()
+      abortRef.current = controller
 
       setError(null)
       setCurrentCitations([])
 
-      // Add user message
       const userMsg: Message = {
         id: generateId(),
         role: 'user',
         content: query,
         timestamp: new Date(),
       }
-
-      // Add placeholder assistant message (streaming)
       const assistantMsgId = generateId()
       const assistantMsg: Message = {
         id: assistantMsgId,
@@ -70,65 +68,50 @@ export function useChat(companyName = 'our company'): UseChatReturn {
       setMessages((prev) => [...prev, userMsg, assistantMsg])
       setIsLoading(true)
 
-      const cancel = streamChatMessage(
-        {
-          query,
-          session_id: sessionId.current,
-          company_name: companyName,
-          stream: true,
-        },
-        {
-          onChunk: (token) => {
-            setMessages((prev) =>
-              prev.map((m) =>
-                m.id === assistantMsgId ? { ...m, content: m.content + token } : m,
-              ),
-            )
-          },
-          onSources: (citations, usedFallback) => {
-            setCurrentCitations(citations)
-            setMessages((prev) =>
-              prev.map((m) =>
-                m.id === assistantMsgId ? { ...m, citations, used_fallback: usedFallback } : m,
-              ),
-            )
-          },
-          onDone: (newSessionId) => {
-            if (newSessionId) sessionId.current = newSessionId
-            setMessages((prev) =>
-              prev.map((m) =>
-                m.id === assistantMsgId ? { ...m, isStreaming: false } : m,
-              ),
-            )
-            setIsLoading(false)
-          },
-          onError: (err) => {
-            setError(err)
-            setMessages((prev) =>
-              prev.map((m) =>
-                m.id === assistantMsgId
-                  ? {
-                      ...m,
-                      content:
-                        m.content ||
-                        'Sorry, I encountered an error. Please try again.',
-                      isStreaming: false,
-                    }
-                  : m,
-              ),
-            )
-            setIsLoading(false)
-          },
-        },
+      sendChatMessage(
+        { query, session_id: sessionId.current, company_name: companyName, stream: false },
       )
-
-      cancelStreamRef.current = cancel
+        .then((result) => {
+          if (controller.signal.aborted) return
+          setCurrentCitations(result.citations ?? [])
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === assistantMsgId
+                ? { ...m, content: result.response, citations: result.citations, isStreaming: false }
+                : m,
+            ),
+          )
+          if (result.session_id) sessionId.current = result.session_id
+        })
+        .catch((err) => {
+          if (controller.signal.aborted) return
+          const msg = err?.message ?? String(err)
+          setError(msg)
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === assistantMsgId
+                ? { ...m, content: 'Sorry, I encountered an error. Please try again.', isStreaming: false }
+                : m,
+            ),
+          )
+        })
+        .finally(() => {
+          if (!controller.signal.aborted) setIsLoading(false)
+        })
     },
     [isLoading, companyName],
   )
 
+  const stopGeneration = useCallback(() => {
+    abortRef.current?.abort()
+    setMessages((prev) =>
+      prev.map((m) => (m.isStreaming ? { ...m, isStreaming: false } : m)),
+    )
+    setIsLoading(false)
+  }, [])
+
   const clearChat = useCallback(() => {
-    cancelStreamRef.current?.()
+    abortRef.current?.abort()
     sessionId.current = generateId()
     setMessages([
       {
@@ -149,6 +132,7 @@ export function useChat(companyName = 'our company'): UseChatReturn {
     currentCitations,
     sessionId: sessionId.current,
     sendMessage,
+    stopGeneration,
     clearChat,
     error,
   }
