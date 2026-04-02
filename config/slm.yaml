@@ -1,0 +1,12 @@
+model:
+  id: microsoft/Phi-3-mini-4k-instruct
+  quantization: 4bit          # Options: none, 4bit, 8bit
+  max_new_tokens: 512
+  temperature: 0.1            # Low for factual customer service responses
+  top_p: 0.9
+  repetition_penalty: 1.1
+
+inference:
+  device: auto                # cpu | cuda | mps
+  batch_size: 1
+  timeout_seconds: 30

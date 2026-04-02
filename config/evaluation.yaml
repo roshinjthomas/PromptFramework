@@ -1,0 +1,21 @@
+ragas:
+  test_dataset: data/evaluation/test-dataset.json
+  metrics:
+    - faithfulness
+    - answer_relevancy
+    - context_precision
+    - context_recall
+    - answer_correctness
+
+  thresholds:
+    faithfulness: 0.80        # Below this = hallucination risk, block deployment
+    answer_relevancy: 0.75
+    context_precision: 0.70
+    context_recall: 0.70
+    answer_correctness: 0.75
+
+  fail_on_threshold_breach: true   # Block config change if any metric drops below threshold
+
+ui:
+  frontend_port: 3000              # React dev server (Vite)
+  backend_port: 8000               # FastAPI server

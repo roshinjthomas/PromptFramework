@@ -1,0 +1,51 @@
+{
+  "catalog": {
+    "name": "RAG Customer Service Chatbot Framework",
+    "slug": "rag-chatbot-framework",
+    "version": "1.0.0",
+    "description": "A complete, production-ready framework for building a RAG-powered customer service chatbot. Includes PDF ingestion, Phi-3 Mini SLM inference, ChromaDB vector store, RAGAS evaluation pipeline, and a React web UI with streaming chat and an evaluation dashboard.",
+    "long_description": "This framework enables teams to ingest PDF documents as a knowledge base, serve customer queries through a RAG pipeline backed by Phi-3 Mini, evaluate quality using RAGAS metrics, and access everything via a React web app. Built with Claude Code and the Claude Agent SDK.",
+    "author": {
+      "name": "Your Organization",
+      "email": "hello@your-org.com",
+      "url": "https://your-org.com"
+    },
+    "license": "MIT",
+    "homepage": "https://github.com/your-org/rag-chatbot-framework",
+    "repository": "https://github.com/your-org/rag-chatbot-framework",
+    "categories": ["customer-service", "rag", "nlp", "evaluation"],
+    "tags": ["rag", "chatbot", "pdf-ingestion", "phi-3", "chromadb", "ragas", "fastapi", "react", "typescript", "python"],
+    "screenshots": [],
+    "featured": false,
+    "verified": false,
+    "stats": {
+      "downloads": 0,
+      "stars": 0,
+      "forks": 0
+    },
+    "requirements": {
+      "python": ">=3.11",
+      "node": ">=20",
+      "ram_gb": 8,
+      "disk_gb": 5
+    },
+    "features": [
+      "Zero-config PDF ingestion pipeline",
+      "Phi-3 Mini SLM with 4-bit quantization support",
+      "ChromaDB vector store with cosine similarity",
+      "SSE streaming chat responses",
+      "RAGAS evaluation: Faithfulness, Relevancy, Precision, Recall, Correctness",
+      "React + TypeScript web UI with Tailwind CSS",
+      "Full evaluation dashboard with trend charts and per-question drill-down",
+      "Thumbs feedback collection and JSONL export for fine-tuning",
+      "FastAPI backend with OpenAPI docs"
+    ],
+    "changelog": [
+      {
+        "version": "1.0.0",
+        "date": "2026-04-01",
+        "notes": "Initial release — full RAG pipeline, RAGAS evaluation, React UI."
+      }
+    ]
+  }
+}

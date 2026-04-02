@@ -1,0 +1,44 @@
+{
+  "description": "Optional MCP server configurations for external knowledge base sources.",
+  "mcpServers": {
+    "sharepoint": {
+      "description": "Ingest documents from a SharePoint document library.",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-sharepoint"],
+      "env": {
+        "SHAREPOINT_SITE_URL": "${SHAREPOINT_SITE_URL}",
+        "SHAREPOINT_CLIENT_ID": "${SHAREPOINT_CLIENT_ID}",
+        "SHAREPOINT_CLIENT_SECRET": "${SHAREPOINT_CLIENT_SECRET}"
+      },
+      "enabled": false
+    },
+    "confluence": {
+      "description": "Ingest Confluence pages as knowledge base sources.",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-confluence"],
+      "env": {
+        "CONFLUENCE_BASE_URL": "${CONFLUENCE_BASE_URL}",
+        "CONFLUENCE_API_TOKEN": "${CONFLUENCE_API_TOKEN}",
+        "CONFLUENCE_USERNAME": "${CONFLUENCE_USERNAME}"
+      },
+      "enabled": false
+    },
+    "s3": {
+      "description": "Ingest PDF documents stored in an S3 bucket.",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-aws-s3"],
+      "env": {
+        "AWS_ACCESS_KEY_ID": "${AWS_ACCESS_KEY_ID}",
+        "AWS_SECRET_ACCESS_KEY": "${AWS_SECRET_ACCESS_KEY}",
+        "AWS_REGION": "${AWS_REGION}",
+        "S3_BUCKET_NAME": "${S3_BUCKET_NAME}"
+      },
+      "enabled": false
+    }
+  },
+  "notes": [
+    "Set 'enabled: true' and configure env vars in your .env file to activate an MCP source.",
+    "Do NOT commit credentials to source control — use environment variables only.",
+    "Documents ingested via MCP are stored in data/documents/ and indexed in ChromaDB like any other PDF."
+  ]
+}

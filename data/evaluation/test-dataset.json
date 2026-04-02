@@ -1,0 +1,27 @@
+[
+  {
+    "question": "What is the return window for electronics?",
+    "ground_truth": "Electronics can be returned within 30 days of purchase with the original receipt and in original packaging.",
+    "source_document": "returns-policy.pdf"
+  },
+  {
+    "question": "Do you offer free shipping?",
+    "ground_truth": "Free standard shipping is available on orders over $50.",
+    "source_document": "shipping-faq.pdf"
+  },
+  {
+    "question": "How long does standard shipping take?",
+    "ground_truth": "Standard shipping typically takes 5–7 business days from the date of dispatch.",
+    "source_document": "shipping-faq.pdf"
+  },
+  {
+    "question": "Can I return a product without a receipt?",
+    "ground_truth": "Returns without a receipt may be accepted for store credit only, subject to manager approval, and within 14 days of purchase.",
+    "source_document": "returns-policy.pdf"
+  },
+  {
+    "question": "What payment methods do you accept?",
+    "ground_truth": "We accept Visa, Mastercard, American Express, PayPal, and bank transfers for online orders.",
+    "source_document": "payment-faq.pdf"
+  }
+]

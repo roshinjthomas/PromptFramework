@@ -1,0 +1,20 @@
+ingestion:
+  chunk_size: 512             # tokens per chunk
+  chunk_overlap: 64           # token overlap between consecutive chunks
+  min_chunk_size: 100         # discard chunks smaller than this
+  respect_paragraphs: true    # avoid splitting mid-paragraph
+
+embedding:
+  model: sentence-transformers/all-MiniLM-L6-v2
+  device: cpu
+  batch_size: 32
+
+vector_store:
+  backend: chromadb           # Options: chromadb | faiss
+  persist_path: data/vector-store
+  collection_name: customer-kb
+
+retrieval:
+  top_k: 5                    # number of chunks returned per query
+  score_threshold: 0.6        # minimum similarity score to include a chunk
+  rerank: false               # set true to enable cross-encoder reranking

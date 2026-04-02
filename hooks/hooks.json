@@ -1,0 +1,104 @@
+{
+  "hooks": [
+    {
+      "id": "on-ingest",
+      "name": "Post-Ingest Spot Check",
+      "description": "After a PDF is successfully ingested, run a quick RAGAS spot-check on 5 sample questions from the test dataset to verify the new document integrates well.",
+      "trigger": {
+        "type": "event",
+        "event": "ingest_complete",
+        "condition": "stats.status == 'success'"
+      },
+      "action": {
+        "type": "script",
+        "command": "python -m scripts.evaluation.ragas_runner --metrics faithfulness,answer_relevancy",
+        "timeout_seconds": 120
+      },
+      "on_failure": "log_warning",
+      "enabled": true
+    },
+    {
+      "id": "on-chat-end",
+      "name": "Save Conversation to Feedback Store",
+      "description": "When a chat session ends, save the full conversation (queries + responses) to the feedback store for later fine-tuning export.",
+      "trigger": {
+        "type": "event",
+        "event": "chat_session_end",
+        "condition": "session.message_count > 0"
+      },
+      "action": {
+        "type": "function",
+        "module": "scripts.feedback.collector",
+        "function": "store_feedback",
+        "args": {
+          "rating": "unrated"
+        }
+      },
+      "on_failure": "log_warning",
+      "enabled": true
+    },
+    {
+      "id": "on-eval-complete",
+      "name": "Render RAGAS Scores + Alert",
+      "description": "After a RAGAS evaluation run completes, update the evaluation dashboard and alert if any metric is below threshold.",
+      "trigger": {
+        "type": "event",
+        "event": "evaluation_complete"
+      },
+      "action": {
+        "type": "composite",
+        "steps": [
+          {
+            "type": "invalidate_cache",
+            "cache_key": "evaluation_runs"
+          },
+          {
+            "type": "conditional_alert",
+            "condition": "result.status == 'failed'",
+            "alert": {
+              "level": "warning",
+              "message": "RAGAS Gate FAILED: one or more metrics below threshold. Review before deploying.",
+              "channels": ["console", "ui_banner"]
+            }
+          }
+        ]
+      },
+      "on_failure": "log_error",
+      "enabled": true
+    },
+    {
+      "id": "on-config-change",
+      "name": "Auto Re-run Evaluation on Config Change",
+      "description": "When config/rag.yaml or config/slm.yaml is saved, automatically re-run the full RAGAS evaluation to measure the impact of the change.",
+      "trigger": {
+        "type": "file_watch",
+        "paths": ["config/rag.yaml", "config/slm.yaml"],
+        "events": ["modified"]
+      },
+      "action": {
+        "type": "script",
+        "command": "python -m scripts.evaluation.ragas_runner",
+        "timeout_seconds": 600
+      },
+      "on_failure": "log_error",
+      "enabled": true
+    },
+    {
+      "id": "on-kb-refresh",
+      "name": "Re-run Evaluation After Document Refresh",
+      "description": "After a document is re-ingested (refreshed), run evaluation filtered to questions related to that document.",
+      "trigger": {
+        "type": "event",
+        "event": "kb_refresh_complete",
+        "condition": "stats.status == 'success'"
+      },
+      "action": {
+        "type": "script",
+        "command": "python -m scripts.evaluation.ragas_runner",
+        "timeout_seconds": 300
+      },
+      "on_failure": "log_warning",
+      "enabled": true
+    }
+  ]
+}

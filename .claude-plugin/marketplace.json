@@ -1,0 +1,4 @@
+{
+  "extends": "../marketplace.json",
+  "note": "Plugin marketplace registration. See /marketplace.json for full catalog entry."
+}

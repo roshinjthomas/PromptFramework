@@ -1,0 +1,54 @@
+{
+  "name": "rag-chatbot-framework",
+  "version": "1.0.0",
+  "description": "RAG-Based Customer Service Chatbot Framework — PDF ingestion, Phi-3 Mini inference, ChromaDB retrieval, RAGAS evaluation, and React UI.",
+  "author": "Your Organization",
+  "license": "MIT",
+  "homepage": "https://github.com/your-org/rag-chatbot-framework",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-org/rag-chatbot-framework"
+  },
+  "claude_code": {
+    "min_version": "1.0.0"
+  },
+  "agents": [
+    "agents/document-ingestion.md",
+    "agents/retriever.md",
+    "agents/slm-inference.md",
+    "agents/response-postprocessor.md",
+    "agents/ragas-evaluator.md",
+    "agents/eval-reporter.md",
+    "agents/kb-manager.md",
+    "agents/query-router.md",
+    "agents/feedback-collector.md"
+  ],
+  "commands": [
+    "commands/ingest.md",
+    "commands/chat.md",
+    "commands/evaluate.md",
+    "commands/eval-ui.md",
+    "commands/kb-list.md",
+    "commands/kb-remove.md",
+    "commands/kb-refresh.md",
+    "commands/tune-retriever.md",
+    "commands/export-dataset.md"
+  ],
+  "rules": [
+    "rules/common/rag-standards.md",
+    "rules/common/slm-prompting.md",
+    "rules/common/hallucination.md",
+    "rules/common/pii.md",
+    "rules/common/evaluation.md",
+    "rules/pdf-handling.md"
+  ],
+  "hooks": "hooks/hooks.json",
+  "config": {
+    "rag": "config/rag.yaml",
+    "slm": "config/slm.yaml",
+    "evaluation": "config/evaluation.yaml"
+  },
+  "tags": ["rag", "chatbot", "customer-service", "llm", "pdf", "chromadb", "ragas", "react", "fastapi"],
+  "categories": ["customer-service", "rag", "evaluation"],
+  "keywords": ["rag", "retrieval-augmented-generation", "chatbot", "phi-3", "chromadb", "ragas", "pdf-ingestion"]
+}
